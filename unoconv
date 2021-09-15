@@ -1463,31 +1463,24 @@ class Listener:
             # via sending SIGTERM and sending SIGTERM to a running unoconv -l
             # without the handler below will not terminate the office process
             # together with it leaving the office process running.
-            office_process = subprocess.Popen(cmd, env=os.environ)
-
-            def sigterm_handler(signum, frame):
-                office_process.terminate()
-                die(6, 'Exiting on SIGTERM')
-
-            signal.signal(signal.SIGTERM, sigterm_handler)
-
-            with open("/tmp/office.pid", "w+") as f:
-                f.write(str(office_process.pid))
-
-            ret = office_process.wait()
-            if ret >= 0:
-                print('continue listener...')
-                info(1, "Restarting %s (first start - 81 exit code)" %
-                     product.ooName)
+            while True:
                 office_process = subprocess.Popen(cmd, env=os.environ)
+
+                def sigterm_handler(signum, frame):
+                    office_process.terminate()
+                    die(6, 'Exiting on SIGTERM')
+                signal.signal(signal.SIGTERM, sigterm_handler)
 
                 with open("/tmp/office.pid", "w+") as f:
                     f.write(str(office_process.pid))
 
-                office_process.wait()
-            else:
-                raise Exception("%s crashed - exit code: %s" %
-                                (product.ooName, ret))
+                ret = office_process.wait()
+                print('continue listener...%d' % ret)
+                # info(1, "Restarting %s (first start - 81 exit code)" %
+                #      product.ooName)
+                # else:
+                #     raise Exception("%s crashed - exit code: %s" %
+                #                     (product.ooName, ret))
         except Exception as e:
             error("Launch of %s failed.\n%s" % (office.binary, e))
 
