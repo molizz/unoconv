@@ -1367,9 +1367,7 @@ class Convertor:
                 else:
                     phase = "force dispose"
                     print('force kill...%d' % pid)
-                    # os.kill(pid, signal.SIGTERM)
-                    # listener = Listener()  # restart listener
-                    os.system('supervisorctl restart unoconv')
+                    os.kill(pid, signal.SIGTERM)
 
             t1 = threading.Thread(target=store_to_url, args=(outputurl,))
             t2 = threading.Thread(target=close_document, args=())
@@ -1477,7 +1475,8 @@ class Listener:
                 f.write(str(office_process.pid))
 
             ret = office_process.wait()
-            if ret == 81:
+            if ret >= 0:
+                print('continue listener...')
                 info(1, "Restarting %s (first start - 81 exit code)" %
                      product.ooName)
                 office_process = subprocess.Popen(cmd, env=os.environ)
