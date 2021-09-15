@@ -1480,6 +1480,10 @@ class Listener:
                 info(1, "Restarting %s (first start - 81 exit code)" %
                      product.ooName)
                 office_process = subprocess.Popen(cmd, env=os.environ)
+
+                with open("/tmp/office.pid", "w+") as f:
+                    f.write(str(office_process.pid))
+
                 office_process.wait()
             else:
                 raise Exception("%s crashed - exit code: %s" %
