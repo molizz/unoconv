@@ -1356,7 +1356,7 @@ class Convertor:
                     event.set()
 
             def close_document():
-                event.wait(60)  # 60s
+                event.wait(op.timeout)  # 60s
                 if self.is_normalized:
                     print('normalized exit...%d' % pid)
                     phase = "dispose"
