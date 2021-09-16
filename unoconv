@@ -28,6 +28,8 @@ import threading
 
 __version__ = '0.8.2'
 
+os.environ["PYTHONUNBUFFERED"] = "x"
+
 doctypes = ('document', 'graphics', 'presentation', 'spreadsheet')
 
 global convertor, office, ooproc, product
@@ -913,7 +915,8 @@ class Options:
 unoconv options:
   -c, --connection=string             use a custom connection string
   -d, --doctype=type                  specify document type
-                                        (document, graphics, presentation, spreadsheet)
+                                        (document, graphics,
+                                         presentation, spreadsheet)
   -e, --export=name=value             set export filter options
                                         eg. -e PageRange=1-2
   -f, --format=format                 specify the output format
@@ -958,6 +961,8 @@ class Convertor:
     def __init__(self):
         global exitcode, ooproc, office, product
         unocontext = None
+
+        self.is_normalized = False
 
         # Do the LibreOffice component dance
         self.context = uno.getComponentContext()
@@ -1456,23 +1461,24 @@ class Listener:
             # via sending SIGTERM and sending SIGTERM to a running unoconv -l
             # without the handler below will not terminate the office process
             # together with it leaving the office process running.
-            office_process = subprocess.Popen(cmd, env=os.environ)
-
-            def sigterm_handler(signum, frame):
-                office_process.terminate()
-                die(6, 'Exiting on SIGTERM')
-
-            signal.signal(signal.SIGTERM, sigterm_handler)
-
-            ret = office_process.wait()
-            if ret == 81:
-                info(1, "Restarting %s (first start - 81 exit code)" %
-                     product.ooName)
+            while True:
                 office_process = subprocess.Popen(cmd, env=os.environ)
-                office_process.wait()
-            else:
-                raise Exception("%s crashed - exit code: %s" %
-                                (product.ooName, ret))
+
+                def sigterm_handler(signum, frame):
+                    office_process.terminate()
+                    die(6, 'Exiting on SIGTERM')
+                signal.signal(signal.SIGTERM, sigterm_handler)
+
+                with open("/tmp/office.pid", "w+") as f:
+                    f.write(str(office_process.pid))
+
+                ret = office_process.wait()
+                print('continue listener...%d' % ret)
+                # info(1, "Restarting %s (first start - 81 exit code)" %
+                #      product.ooName)
+                # else:
+                #     raise Exception("%s crashed - exit code: %s" %
+                #                     (product.ooName, ret))
         except Exception as e:
             error("Launch of %s failed.\n%s" % (office.binary, e))
 
