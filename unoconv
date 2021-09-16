@@ -24,6 +24,7 @@ import signal
 import subprocess
 import sys
 import time
+import threading
 
 __version__ = '0.8.2'
 
@@ -1329,18 +1330,50 @@ class Convertor:
 
             info(1, "Output file: %s" % outputurl)
 
-            try:
-                document.storeToURL(outputurl, tuple(outputprops))
-            except IOException as e:
-                raise UnoException("Unable to store document to %s (Error %s)\n\nProperties: %s" % (
-                    outputurl, e.value, outputprops), None)
+            # ----
+            print('start store to url...')
 
-            phase = "dispose"
-            document.dispose()
-            document.close(True)
-            if not op.stdout and op.preserve:
-                self.preserve(inputfn, outputfn)
+            pid = -1
+            with open('/tmp/office.pid') as f:
+                pid = int(f.read())
 
+            def store_to_url(event, url):
+                try:
+                    document.storeToURL(url, tuple(outputprops))
+                except IOException as e:
+                    raise UnoException("Unable to store document to %s (Error %s)\n\nProperties: %s" % (
+                        outputurl, e.value, outputprops), None)
+                finally:
+                    event.set()
+
+            def close_document(event):
+                normalized = event.wait(op.timeout)
+                if normalized:
+                    print('normalized exit...%d' % pid)
+                    phase = "dispose"
+                    document.dispose()
+                    document.close(True)
+                    if not op.stdout and op.preserve:
+                        self.preserve(inputfn, outputfn)
+                else:
+                    phase = "force dispose"
+                    print('force kill...%d' % pid)
+                    os.kill(pid, signal.SIGTERM)
+
+            event = threading.Event()
+            t1 = threading.Thread(target=store_to_url,
+                                  args=(event, outputurl,))
+            t2 = threading.Thread(target=close_document, args=(event,))
+
+            t2.start()
+            t1.start()
+            t2.join()
+            t1.join()
+            # try:
+            #     document.storeToURL(outputurl, tuple(outputprops))
+            # except IOException as e:
+            #     raise UnoException("Unable to store document to %s (Error %s)\n\nProperties: %s" % (
+            #         outputurl, e.value, outputprops), None)
         except SystemError as e:
             error("unoconv: SystemError during %s phase:\n%s" % (phase, e))
             exitcode = 1
