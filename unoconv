@@ -1007,7 +1007,7 @@ class Convertor:
             try:
                 product = self.svcmgr.createInstance("com.sun.star.configuration.ConfigurationProvider").createInstanceWithArguments(
                     "com.sun.star.configuration.ConfigurationAccess", UnoProps(nodepath="/org.openoffice.Setup/Product"))
-                if product.ooName not in ('LibreOffice', 'LOdev') or LooseVersion(product.ooSetupVersion) <= LooseVersion('3.3'):
+                if LooseVersion(product.ooSetupVersion) <= LooseVersion('3.3'):
                     args = [office.binary, "-headless", "-invisible", "-nocrashreport", "-nodefault",
                             "-nofirststartwizard", "-nologo", "-norestore", "-accept=%s" % op.connection]
                 else:
@@ -1447,7 +1447,7 @@ class Listener:
                 info(1, "Existing %s listener found, nothing to do." %
                      product.ooName)
                 return
-            if product.ooName != "LibreOffice" or LooseVersion(product.ooSetupVersion) <= LooseVersion('3.3'):
+            if LooseVersion(product.ooSetupVersion) <= LooseVersion('3.3'):
                 cmd = [office.binary, "-headless", "-invisible", "-nocrashreport", "-nodefault",
                        "-nologo", "-nofirststartwizard", "-norestore", "-accept=%s" % op.connection]
             else:
@@ -1514,7 +1514,7 @@ def die(ret, msg=None):
         if convertor.desktop.getCurrentFrame():
             info(2, 'Trying to stop %s GUI listener.' % product.ooName)
             try:
-                if product.ooName != "LibreOffice" or product.ooSetupVersion <= 3.3:
+                if product.ooSetupVersion <= 3.3:
                     subprocess.Popen([office.binary, "-headless", "-invisible", "-nocrashreport", "-nodefault",
                                      "-nofirststartwizard", "-nologo", "-norestore", "-unaccept=%s" % op.connection], env=os.environ)
                 else:
