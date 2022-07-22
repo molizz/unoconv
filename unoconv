@@ -1598,8 +1598,8 @@ def main():
         exitcode = 1
     # except UnboundLocalError:
         # die(252, "Failed to connect to remote listener.")
-    except OSError:
-        error("Warning: failed to launch Office suite. Aborting.")
+    except OSError as e:
+        error("Warning: failed to launch Office suite. Aborting. %s" % e)
 
 
 # Main entrance
